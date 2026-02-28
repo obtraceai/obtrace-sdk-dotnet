@@ -1,0 +1,24 @@
+name: Security
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
+  nuget-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet list src/Obtrace.Sdk/Obtrace.Sdk.csproj package --vulnerable --include-transitive
