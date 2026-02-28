@@ -1,0 +1,10 @@
+{
+  "mcp_version": "1.0",
+  "name": "obtrace-sdk-dotnet",
+  "description": "MCP context metadata for Obtrace .NET SDK repository",
+  "resources": [
+    { "id": "readme", "path": "README.md", "description": "C#/.NET SDK usage" },
+    { "id": "docs-index", "path": "docs/index.md", "description": "Documentation index" },
+    { "id": "client", "path": "src/Obtrace.Sdk/ObtraceClient.cs", "description": "SDK client implementation" }
+  ]
+}

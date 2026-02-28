@@ -1,0 +1,20 @@
+Obtrace SDK .NET
+
+Purpose:
+- C#/.NET backend SDK for logs, metrics, spans, propagation, and ASP.NET Core helper baseline.
+
+Core modules:
+- src/Obtrace.Sdk/ObtraceClient.cs
+- src/Obtrace.Sdk/ObtraceConfig.cs
+- src/Obtrace.Sdk/Propagation.cs
+- src/Obtrace.Sdk/OtlpPayloads.cs
+
+Framework coverage:
+- ASP.NET Core middleware baseline
+
+Design principle:
+- Thin SDK, no business rule authority.
+- Backend/ingest/control-plane is source of truth for policy and business logic.
+
+Reference contract:
+- specs/sdk/universal-contract-v1.md
