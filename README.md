@@ -50,7 +50,7 @@ Recommended:
 var cfg = new ObtraceConfig
 {
     ApiKey = "<API_KEY>",
-    IngestBaseUrl = "https://injet.obtrace.ai",
+    IngestBaseUrl = "https://inject.obtrace.ai",
     ServiceName = "dotnet-api"
 };
 
