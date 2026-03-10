@@ -13,5 +13,6 @@ public sealed class ObtraceConfig
     public int MaxQueueSize { get; set; } = 1000;
     public int RequestTimeoutMs { get; set; } = 5000;
     public Dictionary<string, string> DefaultHeaders { get; set; } = new();
+    public bool ValidateSemanticMetrics { get; set; }
     public bool Debug { get; set; }
 }

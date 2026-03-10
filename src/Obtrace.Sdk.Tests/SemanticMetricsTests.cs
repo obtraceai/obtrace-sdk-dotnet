@@ -10,5 +10,7 @@ public class SemanticMetricsTests
         Assert.Equal("runtime.cpu.utilization", SemanticMetrics.RuntimeCpuUtilization);
         Assert.Equal("db.operation.latency", SemanticMetrics.DbOperationLatency);
         Assert.Equal("web.vital.inp", SemanticMetrics.WebVitalInp);
+        Assert.True(SemanticMetrics.IsSemanticMetric(SemanticMetrics.WebVitalInp));
+        Assert.False(SemanticMetrics.IsSemanticMetric("orders.count"));
     }
 }

@@ -24,4 +24,32 @@ public static class SemanticMetrics
     public const string WebVitalCls = "web.vital.cls";
     public const string WebVitalTtfb = "web.vital.ttfb";
     public const string UserActions = "obtrace.sim.web.react.actions";
+
+    private static readonly HashSet<string> All = new()
+    {
+        Throughput,
+        ErrorRate,
+        LatencyP95,
+        RuntimeCpuUtilization,
+        RuntimeMemoryUsage,
+        RuntimeThreadCount,
+        RuntimeGcPause,
+        RuntimeEventloopLag,
+        ClusterCpuUtilization,
+        ClusterMemoryUsage,
+        ClusterNodeCount,
+        ClusterPodCount,
+        DbOperationLatency,
+        DbClientErrors,
+        DbConnectionsUsage,
+        MessagingConsumerLag,
+        WebVitalLcp,
+        WebVitalFcp,
+        WebVitalInp,
+        WebVitalCls,
+        WebVitalTtfb,
+        UserActions,
+    };
+
+    public static bool IsSemanticMetric(string name) => All.Contains(name);
 }

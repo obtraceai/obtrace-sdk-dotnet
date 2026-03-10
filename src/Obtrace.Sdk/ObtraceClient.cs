@@ -27,7 +27,17 @@ public sealed class ObtraceClient
         Enqueue("/otlp/v1/logs", OtlpPayloads.BuildLogsPayload(_cfg, level, message, context));
 
     public void Metric(string name, double value, string unit = "1", SDKContext? context = null) =>
+        EnqueueMetric(name, value, unit, context);
+
+    private void EnqueueMetric(string name, double value, string unit, SDKContext? context)
+    {
+        if (_cfg.ValidateSemanticMetrics && _cfg.Debug && !SemanticMetrics.IsSemanticMetric(name))
+        {
+            Console.Error.WriteLine($"[obtrace-sdk-dotnet] non-canonical metric name: {name}");
+        }
+
         Enqueue("/otlp/v1/metrics", OtlpPayloads.BuildMetricPayload(_cfg, name, value, unit, context));
+    }
 
     public (string TraceId, string SpanId) Span(string name, string? traceId = null, string? spanId = null, string? startUnixNano = null, string? endUnixNano = null, int? statusCode = null, string statusMessage = "", IDictionary<string, object?>? attrs = null)
     {
