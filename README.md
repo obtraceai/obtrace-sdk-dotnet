@@ -56,8 +56,20 @@ var cfg = new ObtraceConfig
 
 var client = new ObtraceClient(cfg);
 client.Log("info", "started");
+client.Metric(SemanticMetrics.RuntimeCpuUtilization, 0.41);
+client.Span("checkout.charge", attrs: new Dictionary<string, object?>
+{
+    ["feature.name"] = "checkout",
+    ["payment.provider"] = "stripe",
+});
 await client.FlushAsync();
 ```
+
+## Canonical metrics and custom spans
+
+- Use `SemanticMetrics.*` for globally normalized metric names.
+- Custom spans use `client.Span(..., attrs: ...)`.
+- Keep free-form metric names only for application-specific signals outside the shared catalog.
 
 ## Frameworks
 

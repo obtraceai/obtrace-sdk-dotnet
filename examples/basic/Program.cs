@@ -10,6 +10,10 @@ var cfg = new ObtraceConfig
 
 var client = new ObtraceClient(cfg);
 client.Log("info", "dotnet sdk initialized");
-client.Metric("example.counter", 1);
-client.Span("example.work");
+client.Metric(SemanticMetrics.RuntimeCpuUtilization, 0.41);
+client.Span("checkout.charge", attrs: new Dictionary<string, object?>
+{
+    ["feature.name"] = "checkout",
+    ["payment.provider"] = "stripe",
+});
 await client.FlushAsync();
