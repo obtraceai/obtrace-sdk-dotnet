@@ -130,7 +130,7 @@ public static class OtlpPayloads
         {
             ["service.name"] = cfg.ServiceName,
             ["service.version"] = cfg.ServiceVersion,
-            ["deployment.environment"] = string.IsNullOrWhiteSpace(cfg.Env) ? "dev" : cfg.Env,
+            ["deployment.environment"] = cfg.Env ?? "",
             ["runtime.name"] = ".NET",
         };
         if (!string.IsNullOrWhiteSpace(cfg.TenantId)) baseAttrs["obtrace.tenant_id"] = cfg.TenantId;

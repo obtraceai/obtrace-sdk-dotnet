@@ -7,7 +7,7 @@ public sealed class ObtraceConfig
     public string? TenantId { get; set; }
     public string? ProjectId { get; set; }
     public string? AppId { get; set; }
-    public string Env { get; set; } = "dev";
+    public string Env { get; set; } = "";
     public string ServiceName { get; set; } = "";
     public string ServiceVersion { get; set; } = "1.0.0";
     public int MaxQueueSize { get; set; } = 1000;

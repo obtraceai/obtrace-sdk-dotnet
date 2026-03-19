@@ -37,7 +37,7 @@ Required:
 - `IngestBaseUrl`
 - `ServiceName`
 
-Recommended:
+Optional (auto-resolved from API key on the server side):
 - `TenantId`
 - `ProjectId`
 - `AppId`
@@ -45,6 +45,25 @@ Recommended:
 - `ServiceVersion`
 
 ## Quickstart
+
+### Simplified setup
+
+The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only three fields are needed:
+
+```csharp
+var cfg = new ObtraceConfig
+{
+    ApiKey = "obt_live_...",
+    IngestBaseUrl = "https://ingest.obtrace.io",
+    ServiceName = "my-service"
+};
+
+var client = new ObtraceClient(cfg);
+```
+
+### Full configuration
+
+For advanced use cases you can override the resolved values explicitly:
 
 ```csharp
 var cfg = new ObtraceConfig
