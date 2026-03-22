@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet build --configuration Release /p:Version=${GITHUB_REF_NAME#v}
+      - run: dotnet test --configuration Release --no-build
+      - run: dotnet pack --configuration Release /p:Version=${GITHUB_REF_NAME#v} --output ./nupkg
+      - run: dotnet nuget push ./nupkg/*.nupkg --source "https://nuget.pkg.github.com/obtraceai/index.json" --api-key ${{ secrets.GITHUB_TOKEN }}
