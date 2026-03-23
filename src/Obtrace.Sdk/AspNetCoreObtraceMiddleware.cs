@@ -24,7 +24,21 @@ public sealed class AspNetCoreObtraceMiddleware
             }
         });
 
-        await _next(context).ConfigureAwait(false);
+        try
+        {
+            await _next(context).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _client.Span("request.error", statusCode: 2, statusMessage: ex.Message, attrs: new Dictionary<string, object?>
+            {
+                ["method"] = context.Request.Method,
+                ["path"] = context.Request.Path.ToString(),
+                ["exception.type"] = ex.GetType().FullName,
+                ["exception.message"] = ex.Message
+            });
+            throw;
+        }
 
         _client.Log("info", "request.finish", new SDKContext
         {

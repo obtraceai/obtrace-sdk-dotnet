@@ -4,12 +4,16 @@ using System.Text.Json;
 
 namespace Obtrace.Sdk;
 
-public sealed class ObtraceClient
+public sealed class ObtraceClient : IDisposable, IAsyncDisposable
 {
     private readonly ObtraceConfig _cfg;
     private readonly HttpClient _http;
+    private readonly bool _ownsHttp;
     private readonly object _lock = new();
-    private readonly List<(string Endpoint, object Payload)> _queue = new();
+    private readonly Queue<(string Endpoint, object Payload)> _queue = new();
+    private bool _disposed;
+    private int _circuitFailures;
+    private long _circuitOpenUntil;
 
     public ObtraceClient(ObtraceConfig cfg, HttpClient? httpClient = null)
     {
@@ -19,12 +23,19 @@ public sealed class ObtraceClient
         }
 
         _cfg = cfg;
+        _ownsHttp = httpClient is null;
         _http = httpClient ?? new HttpClient();
         _http.Timeout = TimeSpan.FromMilliseconds(_cfg.RequestTimeoutMs);
     }
 
+    private static string Truncate(string s, int max)
+    {
+        if (s is null || s.Length <= max) return s!;
+        return s[..max] + "...[truncated]";
+    }
+
     public void Log(string level, string message, SDKContext? context = null) =>
-        Enqueue("/otlp/v1/logs", OtlpPayloads.BuildLogsPayload(_cfg, level, message, context));
+        Enqueue("/otlp/v1/logs", OtlpPayloads.BuildLogsPayload(_cfg, level, Truncate(message, 32768), context));
 
     public void Metric(string name, double value, string unit = "1", SDKContext? context = null) =>
         EnqueueMetric(name, value, unit, context);
@@ -36,7 +47,7 @@ public sealed class ObtraceClient
             Console.Error.WriteLine($"[obtrace-sdk-dotnet] non-canonical metric name: {name}");
         }
 
-        Enqueue("/otlp/v1/metrics", OtlpPayloads.BuildMetricPayload(_cfg, name, value, unit, context));
+        Enqueue("/otlp/v1/metrics", OtlpPayloads.BuildMetricPayload(_cfg, Truncate(name, 1024), value, unit, context));
     }
 
     public (string TraceId, string SpanId) Span(string name, string? traceId = null, string? spanId = null, string? startUnixNano = null, string? endUnixNano = null, int? statusCode = null, string statusMessage = "", IDictionary<string, object?>? attrs = null)
@@ -45,7 +56,17 @@ public sealed class ObtraceClient
         var span = (spanId is { Length: 16 }) ? spanId : Propagation.RandomHex(8);
         var start = startUnixNano ?? OtlpPayloads.NowUnixNano();
         var end = endUnixNano ?? OtlpPayloads.NowUnixNano();
-        Enqueue("/otlp/v1/traces", OtlpPayloads.BuildSpanPayload(_cfg, name, trace, span, start, end, statusCode, statusMessage, attrs));
+        var truncatedName = Truncate(name, 32768);
+        if (attrs != null)
+        {
+            var copy = new Dictionary<string, object?>(attrs);
+            foreach (var key in copy.Keys)
+            {
+                if (copy[key] is string sv) copy[key] = Truncate(sv, 4096);
+            }
+            attrs = copy;
+        }
+        Enqueue("/otlp/v1/traces", OtlpPayloads.BuildSpanPayload(_cfg, truncatedName, trace, span, start, end, statusCode, statusMessage, attrs));
         return (trace, span);
     }
 
@@ -54,16 +75,50 @@ public sealed class ObtraceClient
 
     public async Task FlushAsync(CancellationToken ct = default)
     {
-        List<(string Endpoint, object Payload)> batch;
+        (string Endpoint, object Payload)[] batch;
         lock (_lock)
         {
-            batch = new List<(string Endpoint, object Payload)>(_queue);
-            _queue.Clear();
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (now < _circuitOpenUntil) return;
+            var halfOpen = _circuitFailures >= 5;
+            if (halfOpen)
+            {
+                if (_queue.Count == 0) return;
+                var item = _queue.Dequeue();
+                batch = new[] { item };
+            }
+            else
+            {
+                batch = _queue.ToArray();
+                _queue.Clear();
+            }
         }
 
         foreach (var item in batch)
         {
-            await SendAsync(item.Endpoint, item.Payload, ct).ConfigureAwait(false);
+            var success = await SendAsyncWithResult(item.Endpoint, item.Payload, ct).ConfigureAwait(false);
+            if (success)
+            {
+                lock (_lock)
+                {
+                    if (_circuitFailures > 0 && _cfg.Debug)
+                        Console.Error.WriteLine("[obtrace-sdk-dotnet] circuit breaker closed");
+                    _circuitFailures = 0;
+                    _circuitOpenUntil = 0;
+                }
+            }
+            else
+            {
+                lock (_lock)
+                {
+                    _circuitFailures++;
+                    if (_circuitFailures >= 5)
+                    {
+                        _circuitOpenUntil = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 30000;
+                        if (_cfg.Debug) Console.Error.WriteLine("[obtrace-sdk-dotnet] circuit breaker opened");
+                    }
+                }
+            }
         }
     }
 
@@ -73,31 +128,66 @@ public sealed class ObtraceClient
     {
         lock (_lock)
         {
-            if (_queue.Count >= _cfg.MaxQueueSize) _queue.RemoveAt(0);
-            _queue.Add((endpoint, payload));
+            if (_queue.Count >= _cfg.MaxQueueSize) _queue.Dequeue();
+            _queue.Enqueue((endpoint, payload));
         }
     }
 
-    private async Task SendAsync(string endpoint, object payload, CancellationToken ct)
+    private async Task<bool> SendAsyncWithResult(string endpoint, object payload, CancellationToken ct)
     {
         var url = $"{_cfg.IngestBaseUrl.TrimEnd('/')}{endpoint}";
-        using var req = new HttpRequestMessage(HttpMethod.Post, url);
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _cfg.ApiKey);
-        foreach (var header in _cfg.DefaultHeaders) req.Headers.TryAddWithoutValidation(header.Key, header.Value);
-        req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(payload);
+        const int maxAttempts = 2;
 
-        try
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            using var res = await _http.SendAsync(req, ct).ConfigureAwait(false);
-            if (_cfg.Debug && ((int)res.StatusCode) >= 300)
+            try
             {
-                var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                Console.Error.WriteLine($"[obtrace-sdk-dotnet] status={(int)res.StatusCode} endpoint={endpoint} body={body}");
+                using var req = new HttpRequestMessage(HttpMethod.Post, url);
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _cfg.ApiKey);
+                foreach (var header in _cfg.DefaultHeaders) req.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                req.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                using var res = await _http.SendAsync(req, ct).ConfigureAwait(false);
+                if (((int)res.StatusCode) >= 300)
+                {
+                    if (_cfg.Debug)
+                    {
+                        var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                        Console.Error.WriteLine($"[obtrace-sdk-dotnet] status={(int)res.StatusCode} endpoint={endpoint} body={body}");
+                    }
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && attempt < maxAttempts)
+            {
+                if (_cfg.Debug)
+                    Console.Error.WriteLine($"[obtrace-sdk-dotnet] transient failure endpoint={endpoint} attempt={attempt} err={ex.Message}");
+                await Task.Delay(1000, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                if (_cfg.Debug)
+                    Console.Error.WriteLine($"[obtrace-sdk-dotnet] send failed endpoint={endpoint} err={ex.Message}");
+                return false;
             }
         }
-        catch (Exception ex) when (_cfg.Debug)
-        {
-            Console.Error.WriteLine($"[obtrace-sdk-dotnet] send failed endpoint={endpoint} err={ex.Message}");
-        }
+        return false;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        if (_ownsHttp) _http.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        await FlushAsync().ConfigureAwait(false);
+        if (_ownsHttp) _http.Dispose();
     }
 }
