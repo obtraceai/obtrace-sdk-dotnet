@@ -4,6 +4,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Obtrace.Sdk</RootNamespace>
+    <PackageId>Obtrace.Sdk</PackageId>
+    <Authors>Obtrace</Authors>
+    <Description>Obtrace .NET SDK — observability for .NET applications</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/obtraceai/obtrace-sdk-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/obtraceai/obtrace-sdk-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>observability;tracing;logging;metrics;obtrace</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
