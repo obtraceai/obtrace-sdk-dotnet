@@ -15,4 +15,5 @@ public sealed class ObtraceConfig
     public Dictionary<string, string> DefaultHeaders { get; set; } = new();
     public bool ValidateSemanticMetrics { get; set; }
     public bool Debug { get; set; }
+    public bool AutoCaptureConsole { get; set; } = true;
 }

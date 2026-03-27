@@ -11,6 +11,8 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
     private readonly bool _ownsHttp;
     private readonly object _lock = new();
     private readonly Queue<(string Endpoint, object Payload)> _queue = new();
+    private readonly TextWriter? _originalOut;
+    private readonly TextWriter? _originalError;
     private bool _disposed;
     private int _circuitFailures;
     private long _circuitOpenUntil;
@@ -26,6 +28,14 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
         _ownsHttp = httpClient is null;
         _http = httpClient ?? new HttpClient();
         _http.Timeout = TimeSpan.FromMilliseconds(_cfg.RequestTimeoutMs);
+
+        if (_cfg.AutoCaptureConsole)
+        {
+            _originalOut = Console.Out;
+            _originalError = Console.Error;
+            Console.SetOut(new ObtraceTextWriter(_originalOut, this, "info"));
+            Console.SetError(new ObtraceTextWriter(_originalError, this, "error"));
+        }
     }
 
     private static string Truncate(string s, int max)
@@ -180,6 +190,7 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        RestoreConsole();
         if (_ownsHttp) _http.Dispose();
     }
 
@@ -187,7 +198,14 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        RestoreConsole();
         await FlushAsync().ConfigureAwait(false);
         if (_ownsHttp) _http.Dispose();
+    }
+
+    private void RestoreConsole()
+    {
+        if (_originalOut is not null) Console.SetOut(_originalOut);
+        if (_originalError is not null) Console.SetError(_originalError);
     }
 }
