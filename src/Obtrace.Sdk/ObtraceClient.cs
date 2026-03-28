@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
@@ -5,12 +6,17 @@ namespace Obtrace.Sdk;
 
 public sealed class ObtraceClient : IDisposable
 {
+    private static int _instanceCount;
     private readonly ObtraceConfig _cfg;
     private readonly OtelSetup _otel;
     private bool _disposed;
+    private readonly ConcurrentDictionary<string, Gauge<double>> _gaugeCache = new();
 
     public ObtraceClient(ObtraceConfig cfg)
     {
+        if (Interlocked.Increment(ref _instanceCount) > 1)
+            Console.Error.WriteLine("[obtrace-sdk-dotnet] WARNING: ObtraceClient created more than once. Use a single instance.");
+
         _cfg = cfg;
         _otel = new OtelSetup(cfg);
     }
@@ -40,13 +46,20 @@ public sealed class ObtraceClient : IDisposable
         if (_cfg.ValidateSemanticMetrics && _cfg.Debug && !SemanticMetrics.IsSemanticMetric(name))
             Console.Error.WriteLine($"[obtrace-sdk-dotnet] non-canonical metric name: {name}");
 
-        var gauge = _otel.Meter.CreateGauge<double>(name, unit);
+        var gauge = _gaugeCache.GetOrAdd(name, n => _otel.Meter.CreateGauge<double>(n, unit));
         gauge.Record(value);
     }
 
     public Activity? Span(string name, ActivityKind kind = ActivityKind.Internal)
     {
         return _otel.ActivitySource.StartActivity(name, kind);
+    }
+
+    public bool FlushAsync(int timeoutMilliseconds = 10000)
+    {
+        var tracerResult = _otel.TracerProvider.ForceFlush(timeoutMilliseconds);
+        var meterResult = _otel.MeterProvider.ForceFlush(timeoutMilliseconds);
+        return tracerResult && meterResult;
     }
 
     public void Dispose()
