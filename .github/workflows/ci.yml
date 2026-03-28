@@ -13,5 +13,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
+        env:
+          DOTNET_INSTALL_DIR: /home/runner/.dotnet
       - run: dotnet build src/Obtrace.Sdk/Obtrace.Sdk.csproj -c Release
       - run: dotnet test src/Obtrace.Sdk.Tests/Obtrace.Sdk.Tests.csproj -c Release
