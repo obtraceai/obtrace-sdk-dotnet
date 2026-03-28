@@ -11,6 +11,7 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
     private readonly bool _ownsHttp;
     private readonly object _lock = new();
     private readonly Queue<(string Endpoint, object Payload)> _queue = new();
+    private readonly HttpClient? _instrumentedHttp;
     private readonly TextWriter? _originalOut;
     private readonly TextWriter? _originalError;
     private bool _disposed;
@@ -29,6 +30,12 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
         _http = httpClient ?? new HttpClient();
         _http.Timeout = TimeSpan.FromMilliseconds(_cfg.RequestTimeoutMs);
 
+        if (_cfg.AutoCaptureHttp)
+        {
+            _instrumentedHttp = new HttpClient(new HttpClientObtraceHandler(this));
+            _instrumentedHttp.Timeout = TimeSpan.FromMilliseconds(_cfg.RequestTimeoutMs);
+        }
+
         if (_cfg.AutoCaptureConsole)
         {
             _originalOut = Console.Out;
@@ -37,6 +44,9 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
             Console.SetError(new ObtraceTextWriter(_originalError, this, "error"));
         }
     }
+
+    public HttpClient GetInstrumentedHttpClient() =>
+        _instrumentedHttp ?? throw new InvalidOperationException("AutoCaptureHttp is disabled.");
 
     private static string Truncate(string s, int max)
     {
@@ -191,6 +201,7 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
         RestoreConsole();
+        _instrumentedHttp?.Dispose();
         if (_ownsHttp) _http.Dispose();
     }
 
@@ -200,6 +211,7 @@ public sealed class ObtraceClient : IDisposable, IAsyncDisposable
         _disposed = true;
         RestoreConsole();
         await FlushAsync().ConfigureAwait(false);
+        _instrumentedHttp?.Dispose();
         if (_ownsHttp) _http.Dispose();
     }
 

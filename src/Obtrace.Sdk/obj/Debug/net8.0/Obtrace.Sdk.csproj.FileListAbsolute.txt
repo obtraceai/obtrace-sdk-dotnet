@@ -1,0 +1,12 @@
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/bin/Debug/net8.0/Obtrace.Sdk.deps.json
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/bin/Debug/net8.0/Obtrace.Sdk.dll
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/bin/Debug/net8.0/Obtrace.Sdk.pdb
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.GeneratedMSBuildEditorConfig.editorconfig
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.AssemblyInfoInputs.cache
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.AssemblyInfo.cs
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.csproj.CoreCompileInputs.cache
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.sourcelink.json
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.dll
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/refint/Obtrace.Sdk.dll
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/Obtrace.Sdk.pdb
+/home/cendy/workspace/obtrace/obtrace-sdk-dotnet/src/Obtrace.Sdk/obj/Debug/net8.0/ref/Obtrace.Sdk.dll

@@ -16,4 +16,5 @@ public sealed class ObtraceConfig
     public bool ValidateSemanticMetrics { get; set; }
     public bool Debug { get; set; }
     public bool AutoCaptureConsole { get; set; } = true;
+    public bool AutoCaptureHttp { get; set; } = true;
 }
