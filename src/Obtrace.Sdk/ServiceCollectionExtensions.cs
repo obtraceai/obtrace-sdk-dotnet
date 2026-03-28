@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
@@ -25,17 +26,25 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(client);
 
         services.AddOpenTelemetry()
-            .WithTracing(b => b
-                .SetResourceBuilder(resourceBuilder)
-                .AddSource(config.ServiceName)
-                .AddHttpClientInstrumentation()
-                .AddAspNetCoreInstrumentation()
-                .AddOtlpExporter(o =>
+            .WithTracing(b =>
+            {
+                b.SetResourceBuilder(resourceBuilder)
+                    .AddSource(config.ServiceName)
+                    .AddHttpClientInstrumentation()
+                    .AddAspNetCoreInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation()
+                    .AddGrpcClientInstrumentation()
+                    .AddSqlClientInstrumentation();
+
+                TryAddRedisInstrumentation(b);
+
+                b.AddOtlpExporter(o =>
                 {
                     o.Endpoint = endpoint;
                     o.Protocol = OtlpExportProtocol.HttpProtobuf;
                     o.Headers = $"Authorization=Bearer {config.ApiKey}";
-                }))
+                });
+            })
             .WithMetrics(b => b
                 .SetResourceBuilder(resourceBuilder)
                 .AddMeter(config.ServiceName)
@@ -56,6 +65,19 @@ public static class ServiceCollectionExtensions
         var config = new ObtraceConfig();
         configure(config);
         return services.AddObtrace(config);
+    }
+
+    private static void TryAddRedisInstrumentation(TracerProviderBuilder builder)
+    {
+        try
+        {
+            var redisAssembly = Assembly.Load("StackExchange.Redis");
+            if (redisAssembly != null)
+                builder.AddRedisInstrumentation();
+        }
+        catch
+        {
+        }
     }
 
     private static IEnumerable<KeyValuePair<string, object>> BuildResourceAttributes(ObtraceConfig cfg)
