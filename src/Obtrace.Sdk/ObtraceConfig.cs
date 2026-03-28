@@ -10,11 +10,6 @@ public sealed class ObtraceConfig
     public string Env { get; set; } = "";
     public string ServiceName { get; set; } = "";
     public string ServiceVersion { get; set; } = "1.0.0";
-    public int MaxQueueSize { get; set; } = 1000;
-    public int RequestTimeoutMs { get; set; } = 5000;
-    public Dictionary<string, string> DefaultHeaders { get; set; } = new();
     public bool ValidateSemanticMetrics { get; set; }
     public bool Debug { get; set; }
-    public bool AutoCaptureConsole { get; set; } = true;
-    public bool AutoCaptureHttp { get; set; } = true;
 }
