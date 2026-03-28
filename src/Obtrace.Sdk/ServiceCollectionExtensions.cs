@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 
 namespace Obtrace.Sdk;
 
@@ -10,6 +11,15 @@ public static class ServiceCollectionExtensions
         var client = new ObtraceClient(config);
         services.AddSingleton(config);
         services.AddSingleton(client);
+        services.AddTransient<HttpClientObtraceHandler>();
+        services.ConfigureAll<HttpClientFactoryOptions>(options =>
+        {
+            options.HttpMessageHandlerBuilderActions.Add(builder =>
+            {
+                builder.AdditionalHandlers.Add(
+                    builder.Services.GetRequiredService<HttpClientObtraceHandler>());
+            });
+        });
         return services;
     }
 

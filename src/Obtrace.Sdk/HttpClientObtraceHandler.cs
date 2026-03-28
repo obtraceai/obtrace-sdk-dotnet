@@ -7,7 +7,7 @@ public sealed class HttpClientObtraceHandler : DelegatingHandler
     private readonly ObtraceClient _client;
 
     public HttpClientObtraceHandler(ObtraceClient client)
-        : base(new HttpClientHandler())
+        : base()
     {
         _client = client;
     }
