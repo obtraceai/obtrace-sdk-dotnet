@@ -10,11 +10,14 @@ namespace Obtrace.Sdk;
 
 public sealed class OtelSetup : IDisposable
 {
-    private readonly TracerProvider _tracerProvider;
-    private readonly MeterProvider _meterProvider;
+    private readonly Lazy<TracerProvider> _tracerProvider;
+    private readonly Lazy<MeterProvider> _meterProvider;
 
     public ActivitySource ActivitySource { get; }
     public Meter Meter { get; }
+
+    public TracerProvider TracerProvider => _tracerProvider.Value;
+    public MeterProvider MeterProvider => _meterProvider.Value;
 
     public OtelSetup(ObtraceConfig cfg)
     {
@@ -30,27 +33,29 @@ public sealed class OtelSetup : IDisposable
         ActivitySource = new ActivitySource(cfg.ServiceName, cfg.ServiceVersion);
         Meter = new Meter(cfg.ServiceName, cfg.ServiceVersion);
 
-        _tracerProvider = OpenTelemetry.Sdk.CreateTracerProviderBuilder()
-            .SetResourceBuilder(resourceBuilder)
-            .AddSource(cfg.ServiceName)
-            .AddOtlpExporter(o =>
-            {
-                o.Endpoint = endpoint;
-                o.Protocol = OtlpExportProtocol.HttpProtobuf;
-                o.Headers = $"Authorization=Bearer {cfg.ApiKey}";
-            })
-            .Build()!;
+        _tracerProvider = new Lazy<TracerProvider>(() =>
+            OpenTelemetry.Sdk.CreateTracerProviderBuilder()
+                .SetResourceBuilder(resourceBuilder)
+                .AddSource(cfg.ServiceName)
+                .AddOtlpExporter(o =>
+                {
+                    o.Endpoint = endpoint;
+                    o.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    o.Headers = $"Authorization=Bearer {cfg.ApiKey}";
+                })
+                .Build()!);
 
-        _meterProvider = OpenTelemetry.Sdk.CreateMeterProviderBuilder()
-            .SetResourceBuilder(resourceBuilder)
-            .AddMeter(cfg.ServiceName)
-            .AddOtlpExporter(o =>
-            {
-                o.Endpoint = endpoint;
-                o.Protocol = OtlpExportProtocol.HttpProtobuf;
-                o.Headers = $"Authorization=Bearer {cfg.ApiKey}";
-            })
-            .Build()!;
+        _meterProvider = new Lazy<MeterProvider>(() =>
+            OpenTelemetry.Sdk.CreateMeterProviderBuilder()
+                .SetResourceBuilder(resourceBuilder)
+                .AddMeter(cfg.ServiceName)
+                .AddOtlpExporter(o =>
+                {
+                    o.Endpoint = endpoint;
+                    o.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    o.Headers = $"Authorization=Bearer {cfg.ApiKey}";
+                })
+                .Build()!);
     }
 
     private static IEnumerable<KeyValuePair<string, object>> BuildResourceAttributes(ObtraceConfig cfg)
@@ -71,7 +76,7 @@ public sealed class OtelSetup : IDisposable
     {
         ActivitySource.Dispose();
         Meter.Dispose();
-        _tracerProvider.Dispose();
-        _meterProvider.Dispose();
+        if (_tracerProvider.IsValueCreated) _tracerProvider.Value.Dispose();
+        if (_meterProvider.IsValueCreated) _meterProvider.Value.Dispose();
     }
 }
