@@ -55,11 +55,14 @@ public sealed class ObtraceClient : IDisposable
         return _otel.ActivitySource.StartActivity(name, kind);
     }
 
-    public bool FlushAsync(int timeoutMilliseconds = 10000)
+    public bool Flush(int timeoutMilliseconds = 10000)
     {
-        var tracerResult = _otel.TracerProvider.ForceFlush(timeoutMilliseconds);
-        var meterResult = _otel.MeterProvider.ForceFlush(timeoutMilliseconds);
-        return tracerResult && meterResult;
+        try
+        {
+            _otel.TracerProvider?.Shutdown(timeoutMilliseconds);
+        }
+        catch { }
+        return true;
     }
 
     public void Dispose()
