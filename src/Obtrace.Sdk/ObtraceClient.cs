@@ -57,11 +57,6 @@ public sealed class ObtraceClient : IDisposable
 
     public bool Flush(int timeoutMilliseconds = 10000)
     {
-        try
-        {
-            _otel.TracerProvider?.Shutdown(timeoutMilliseconds);
-        }
-        catch { }
         return true;
     }
 
