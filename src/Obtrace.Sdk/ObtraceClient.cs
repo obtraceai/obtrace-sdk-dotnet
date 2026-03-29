@@ -12,6 +12,9 @@ public sealed class ObtraceClient : IDisposable
     private bool _disposed;
     private readonly ConcurrentDictionary<string, Gauge<double>> _gaugeCache = new();
 
+    private volatile bool _initialized;
+    public bool Initialized => _initialized;
+
     public ObtraceClient(ObtraceConfig cfg)
     {
         if (Interlocked.Increment(ref _instanceCount) > 1)
@@ -19,6 +22,43 @@ public sealed class ObtraceClient : IDisposable
 
         _cfg = cfg;
         _otel = new OtelSetup(cfg);
+        _ = Task.Run(HandshakeAsync);
+    }
+
+    private async Task HandshakeAsync()
+    {
+        var baseUrl = _cfg.IngestBaseUrl.TrimEnd('/');
+        if (string.IsNullOrEmpty(baseUrl)) return;
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var body = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                sdk = "obtrace-sdk-dotnet",
+                sdk_version = "1.0.0",
+                service_name = _cfg.ServiceName,
+                service_version = _cfg.ServiceVersion,
+                runtime = "dotnet",
+                runtime_version = Environment.Version.ToString(),
+            });
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/v1/init");
+            req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _cfg.ApiKey);
+            var resp = await client.SendAsync(req);
+            if (resp.IsSuccessStatusCode)
+            {
+                _initialized = true;
+                if (_cfg.Debug) Console.WriteLine("[obtrace-sdk-dotnet] init handshake OK");
+            }
+            else if (_cfg.Debug)
+            {
+                Console.Error.WriteLine($"[obtrace-sdk-dotnet] init handshake failed: {(int)resp.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_cfg.Debug) Console.Error.WriteLine($"[obtrace-sdk-dotnet] init handshake error: {ex.Message}");
+        }
     }
 
     public ActivitySource ActivitySource => _otel.ActivitySource;
