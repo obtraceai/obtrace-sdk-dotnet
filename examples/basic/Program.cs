@@ -3,7 +3,6 @@ using Obtrace.Sdk;
 var cfg = new ObtraceConfig
 {
     ApiKey = Environment.GetEnvironmentVariable("OBTRACE_API_KEY") ?? "test-key",
-    IngestBaseUrl = Environment.GetEnvironmentVariable("OBTRACE_INGEST_BASE_URL") ?? "https://inject.obtrace.ai",
     ServiceName = "dotnet-example",
     Env = "dev",
 };

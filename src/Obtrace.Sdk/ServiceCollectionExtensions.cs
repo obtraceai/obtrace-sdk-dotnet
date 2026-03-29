@@ -11,8 +11,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddObtrace(this IServiceCollection services, ObtraceConfig config)
     {
-        if (string.IsNullOrWhiteSpace(config.ApiKey) || string.IsNullOrWhiteSpace(config.IngestBaseUrl) || string.IsNullOrWhiteSpace(config.ServiceName))
-            throw new ArgumentException("ApiKey, IngestBaseUrl and ServiceName are required.");
+        if (string.IsNullOrWhiteSpace(config.ApiKey) || string.IsNullOrWhiteSpace(config.ServiceName))
+            throw new ArgumentException("ApiKey and ServiceName are required.");
 
         var endpoint = new Uri(config.IngestBaseUrl.TrimEnd('/') + "/otlp");
 

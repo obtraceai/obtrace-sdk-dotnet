@@ -21,8 +21,8 @@ public sealed class OtelSetup : IDisposable
 
     public OtelSetup(ObtraceConfig cfg)
     {
-        if (string.IsNullOrWhiteSpace(cfg.ApiKey) || string.IsNullOrWhiteSpace(cfg.IngestBaseUrl) || string.IsNullOrWhiteSpace(cfg.ServiceName))
-            throw new ArgumentException("ApiKey, IngestBaseUrl and ServiceName are required.");
+        if (string.IsNullOrWhiteSpace(cfg.ApiKey) || string.IsNullOrWhiteSpace(cfg.ServiceName))
+            throw new ArgumentException("ApiKey and ServiceName are required.");
 
         var endpoint = new Uri(cfg.IngestBaseUrl.TrimEnd('/') + "/otlp");
 

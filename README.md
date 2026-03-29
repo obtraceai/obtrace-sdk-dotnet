@@ -34,10 +34,10 @@ dotnet build src/Obtrace.Sdk/Obtrace.Sdk.csproj
 
 Required:
 - `ApiKey`
-- `IngestBaseUrl`
 - `ServiceName`
 
 Optional (auto-resolved from API key on the server side):
+- `IngestBaseUrl` (defaults to `https://ingest.obtrace.ai`)
 - `TenantId`
 - `ProjectId`
 - `AppId`
@@ -48,13 +48,12 @@ Optional (auto-resolved from API key on the server side):
 
 ### Simplified setup
 
-The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only three fields are needed:
+The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only two fields are needed:
 
 ```csharp
 var cfg = new ObtraceConfig
 {
     ApiKey = "obt_live_...",
-    IngestBaseUrl = "https://ingest.obtrace.io",
     ServiceName = "my-service"
 };
 
@@ -69,7 +68,6 @@ For advanced use cases you can override the resolved values explicitly:
 var cfg = new ObtraceConfig
 {
     ApiKey = "<API_KEY>",
-    IngestBaseUrl = "https://inject.obtrace.ai",
     ServiceName = "dotnet-api"
 };
 
