@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Obtrace.Sdk</RootNamespace>
-    <PackageId>Obtrace</PackageId>
+    <PackageId>Obtrace.Sdk</PackageId>
     <Authors>Obtrace</Authors>
     <Description>Obtrace .NET SDK — observability for .NET applications</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
