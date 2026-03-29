@@ -35,7 +35,7 @@ public sealed class ObtraceClient : IDisposable
             var body = System.Text.Json.JsonSerializer.Serialize(new
             {
                 sdk = "obtrace-sdk-dotnet",
-                sdk_version = "1.0.1",
+                sdk_version = "1.0.2",
                 service_name = _cfg.ServiceName,
                 service_version = _cfg.ServiceVersion,
                 runtime = "dotnet",
